@@ -1,0 +1,46 @@
+name: Issue2PR
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 模型网关在 Tailscale 网络里（100.x 是 CGNAT 段，公网不可路由），
+      # 托管 runner 默认够不着，所以让它临时加入 tailnet。
+      # 节点是 ephemeral 的：这次 CI 跑完自动从 tailnet 消失。
+      - name: 加入 tailnet
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          ping: 100.107.22.18
+
+      # 我们的 Action 是 Docker 容器动作，容器走的是 docker0 的 NAT。
+      # 这一步先确认「容器里也够得着网关」——够不着就别白烧一次模型调用了。
+      - name: 确认容器里够得着网关
+        run: |
+          code=$(docker run --rm curlimages/curl -s -m 10 -o /dev/null \
+            -w '%{http_code}' http://100.107.22.18:3001/v1/models || true)
+          echo "容器访问网关 -> HTTP ${code:-（空）}"
+          # 401 / 403 也算通：拿得到 HTTP 状态码就说明网络是通的
+          if [ -z "$code" ] || [ "$code" = "000" ]; then
+            echo "::error::容器连不到网关，tailnet 的路由没进 docker 网络"
+            exit 1
+          fi
+
+      - name: 修 issue
+        uses: wudi091/Issue2PR@main
+        with:
+          api_key: ${{ secrets.LOAD_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          base_url: http://100.107.22.18:3001/v1
+          model: deepseek-flash
