@@ -21,4 +21,6 @@ def truncate(text: str, limit: int, ellipsis: str = "…") -> str:
     """超长就截断并加省略号。limit 是**结果**的总长度上限，省略号也算在里面。"""
     if len(text) <= limit:
         return text
-    return text[:limit] + ellipsis
+    if limit <= len(ellipsis):
+        return ellipsis[:limit]
+    return text[: limit - len(ellipsis)] + ellipsis
