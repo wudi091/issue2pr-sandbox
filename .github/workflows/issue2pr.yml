@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   fix:
+    # 公开仓库 + issues 触发 = 任何人都能开个 issue，让 runner 加入你的 tailnet、
+    # 烧你的模型额度。只认仓库所有者自己开的 issue。
+    if: github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
