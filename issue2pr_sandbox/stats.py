@@ -18,7 +18,9 @@ def median(values: Sequence[float]) -> float:
         raise ValueError("median() 需要至少一个值")
     ordered = sorted(values)
     middle = len(ordered) // 2
-    return ordered[middle]
+    if len(ordered) % 2 == 1:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / 2
 
 
 def percentile(values: Sequence[float], p: float) -> float:
